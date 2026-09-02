@@ -65,6 +65,39 @@ if ((Get-Module PSReadLine) -and $IsInteractive) {
 if ($env:USE_OH_MY_POSH -and (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
     oh-my-posh init pwsh | Invoke-Expression
 }
+else {
+    # -----------------------------------------------------------------
+    # Limpa estado vazado do oh-my-posh.
+    # Um terminal aberto antes de o oh-my-posh ser desativado - ou um
+    # servico de longa duracao que herdou o ambiente (ex.: Herd/Herdr) -
+    # deixa variaveis POSH_* e ate o prompt sobrescrito vazando para os
+    # shells filhos. Sem isso o prompt padrao do posh-git nao aparece.
+    # -----------------------------------------------------------------
+    Get-ChildItem Env: |
+        Where-Object { $_.Name -like 'POSH_*' -and $_.Name -notin 'POSH_PATH', 'POSH_THEMES_PATH' } |
+        ForEach-Object { Remove-Item "Env:\$($_.Name)" -ErrorAction SilentlyContinue }
+
+    # oh-my-posh chegou a ser carregado neste processo (dot-source repetido
+    # numa sessao ja aberta): desfaz o prompt e os hooks e devolve o posh-git.
+    if (Get-Command Set-PoshContext -ErrorAction SilentlyContinue) {
+        foreach ($fn in 'Set-PoshContext', 'Enable-PoshTooltips',
+                        'Enable-PoshTransientPrompt', 'Enable-PoshLineError') {
+            if (Test-Path "Function:\$fn") {
+                Remove-Item "Function:\$fn" -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Get-EventSubscriber -ErrorAction SilentlyContinue |
+            Where-Object { "$($_.SourceIdentifier) $($_.Action.Command)" -match 'omp|PoshContext' } |
+            Unregister-Event -Force -ErrorAction SilentlyContinue
+
+        # Derruba o prompt do oh-my-posh e deixa o posh-git reinstalar o dele
+        # (posh-git nao sobrescreve um prompt customizado ja existente).
+        if (Get-Module posh-git) {
+            Remove-Item Function:\prompt -Force -ErrorAction SilentlyContinue
+            Import-Module posh-git -Force -ErrorAction SilentlyContinue 3>$null
+        }
+    }
+}
 
 # ---------------------------------------------------------------------
 # ls colorido (PowerLS)
