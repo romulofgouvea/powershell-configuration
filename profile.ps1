@@ -14,6 +14,21 @@ if ($IsInteractive) { try { Clear-Host } catch {} }
 $ROOT = $PSScriptRoot
 
 # ---------------------------------------------------------------------
+# Terminal-Icons: remove caches de tema corrompidos antes de importar.
+# Um .xml truncado (ex.: shutdown durante gravacao) faz o modulo lancar
+#   "Import-Clixml: 'Element' is an invalid XmlNodeType"
+#   "Index operation failed; the array index evaluated to null"
+# na cada abertura do terminal. Os arquivos sao recriados no proximo load.
+# ---------------------------------------------------------------------
+$tiCache = Join-Path $env:APPDATA 'powershell\Community\Terminal-Icons'
+if (Test-Path $tiCache) {
+    Get-ChildItem $tiCache -Filter *.xml -ErrorAction SilentlyContinue | ForEach-Object {
+        try { [void](Import-Clixml -LiteralPath $_.FullName -ErrorAction Stop) }
+        catch { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+# ---------------------------------------------------------------------
 # Modulos
 # ---------------------------------------------------------------------
 foreach ($m in 'posh-git', 'PSReadLine', 'Terminal-Icons') {
@@ -40,9 +55,14 @@ if ((Get-Module PSReadLine) -and $IsInteractive) {
 }
 
 # ---------------------------------------------------------------------
-# oh-my-posh (prompt) - opcional, so ativa se estiver instalado
+# Prompt
+# posh-git ja instala o prompt padrao ao ser importado:
+#   ~\workspace\power-shell-profile [master +0 ~1 -0 !]
+#
+# oh-my-posh fica desativado de proposito (sobrescreve o posh-git).
+# Para reativar: defina $env:USE_OH_MY_POSH = '1' e reabra o terminal.
 # ---------------------------------------------------------------------
-if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
+if ($env:USE_OH_MY_POSH -and (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
     oh-my-posh init pwsh | Invoke-Expression
 }
 
