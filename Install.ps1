@@ -7,18 +7,13 @@
       - se necessario, instala o PowerShell 7 e continua nele
       - libera execucao de scripts para o usuario atual
       - confia na PSGallery e instala os modulos (posh-git, PSReadLine, Terminal-Icons)
-      - instala o oh-my-posh (use -NoOhMyPosh para pular)
       - faz backup do seu $PROFILE atual e aponta ele para este repo
 
 .EXAMPLE
     .\Install.ps1
-
-.EXAMPLE
-    .\Install.ps1 -NoOhMyPosh
 #>
 [CmdletBinding()]
 param(
-    [switch]$NoOhMyPosh,
     [switch]$Force
 )
 
@@ -54,8 +49,7 @@ if ($PSVersionTable.PSVersion.Major -lt 6) {
 
     Write-Host "    Continuando no PowerShell 7..." -ForegroundColor Green
     $fwd = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath)
-    if ($NoOhMyPosh) { $fwd += '-NoOhMyPosh' }
-    if ($Force)      { $fwd += '-Force' }
+    if ($Force) { $fwd += '-Force' }
     & $pwsh @fwd
     return
 }
@@ -120,27 +114,7 @@ foreach ($m in 'posh-git', 'PSReadLine', 'Terminal-Icons') {
 }
 
 # ---------------------------------------------------------------------
-# 4. oh-my-posh
-# ---------------------------------------------------------------------
-if (-not $NoOhMyPosh) {
-    Write-Step "Instalando oh-my-posh"
-    if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
-        Write-Ok "ja instalado"
-    } elseif (Get-Command winget -ErrorAction SilentlyContinue) {
-        try {
-            winget install --id JanDeDobbeleer.OhMyPosh --source winget `
-                --accept-package-agreements --accept-source-agreements
-            Write-Ok "instalado"
-        } catch {
-            Write-Warn2 "falhou: $($_.Exception.Message)"
-        }
-    } else {
-        Write-Warn2 "winget nao encontrado - pulei. Veja https://ohmyposh.dev"
-    }
-}
-
-# ---------------------------------------------------------------------
-# 5. $PROFILE aponta para este repo
+# 4. $PROFILE aponta para este repo
 # ---------------------------------------------------------------------
 Write-Step "Configurando `$PROFILE"
 $profileDir = Split-Path $PROFILE -Parent

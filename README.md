@@ -24,12 +24,6 @@ Atualizar:
 git pull
 ```
 
-Sem oh-my-posh:
-
-```powershell
-.\Install.ps1 -NoOhMyPosh
-```
-
 Nerd Font (ícones):
 
 ```powershell
