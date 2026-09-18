@@ -20,14 +20,30 @@ Import-Module PSReadLine
 # durante gravacao) faz o modulo lancar "Import-Clixml: 'Element' is an
 # invalid XmlNodeType" a cada abertura do terminal. Os arquivos sao
 # recriados sozinhos no proximo load.
+#
+# O proprio Terminal-Icons.psm1 le e reescreve esses mesmos arquivos
+# (Export-Clixml -Force) ao importar. Com varias abas abrindo juntas,
+# uma aba pode passar na verificacao abaixo e mesmo assim ler o cache
+# no meio da escrita de outra aba (TOCTOU), causando "Import-Clixml:
+# Root element is missing." + "Index operation failed; the array index
+# evaluated to null." mesmo com a limpeza feita aqui. Por isso o mutex:
+# serializa a validacao + import entre processos concorrentes.
 $tiCache = Join-Path $env:APPDATA 'powershell\Community\Terminal-Icons'
-if (Test-Path $tiCache) {
-    Get-ChildItem $tiCache -Filter *.xml -ErrorAction SilentlyContinue | ForEach-Object {
-        try { [void](Import-Clixml -LiteralPath $_.FullName -ErrorAction Stop) }
-        catch { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+$tiMutex = New-Object System.Threading.Mutex($false, 'Global\PowerShellProfile-TerminalIconsCache')
+$tiLocked = $tiMutex.WaitOne(15000)
+try {
+    if (Test-Path $tiCache) {
+        Get-ChildItem $tiCache -Filter *.xml -ErrorAction SilentlyContinue | ForEach-Object {
+            try { [void](Import-Clixml -LiteralPath $_.FullName -ErrorAction Stop) }
+            catch { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+        }
     }
+    Import-Module Terminal-Icons
 }
-Import-Module Terminal-Icons
+finally {
+    if ($tiLocked) { $tiMutex.ReleaseMutex() }
+    $tiMutex.Dispose()
+}
 
 # ---------------------------------------------------------------------
 # PSReadLine - autocomplete e atalhos
