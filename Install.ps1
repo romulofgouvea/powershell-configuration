@@ -114,7 +114,29 @@ foreach ($m in 'posh-git', 'PSReadLine', 'Terminal-Icons') {
 }
 
 # ---------------------------------------------------------------------
-# 4. $PROFILE aponta para este repo
+# 4. Aliases do Git
+# ---------------------------------------------------------------------
+Write-Step "Configurando aliases do Git"
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    $gitAliases = [ordered]@{
+        pl   = 'pull'
+        ph   = 'push'
+        cm   = 'commit -m'
+        cp   = 'cherry-pick'
+        chb  = 'checkout -b'
+        ch   = 'checkout'
+        hide = 'update-index --assume-unchanged'
+    }
+    foreach ($alias in $gitAliases.GetEnumerator()) {
+        git config --global "alias.$($alias.Key)" $alias.Value
+    }
+    Write-Ok "OK"
+} else {
+    Write-Warn2 "git nao encontrado, aliases nao configurados"
+}
+
+# ---------------------------------------------------------------------
+# 5. $PROFILE aponta para este repo
 # ---------------------------------------------------------------------
 Write-Step "Configurando `$PROFILE"
 $profileDir = Split-Path $PROFILE -Parent
