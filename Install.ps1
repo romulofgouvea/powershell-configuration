@@ -6,7 +6,7 @@
     Clone o repositorio e rode este arquivo. Mais nada.
       - se necessario, instala o PowerShell 7 e continua nele
       - libera execucao de scripts para o usuario atual
-      - confia na PSGallery e instala os modulos (posh-git, PSReadLine, Terminal-Icons)
+      - confia na PSGallery e instala os modulos (posh-git, PSReadLine)
       - faz backup do seu $PROFILE atual e aponta ele para este repo
 
 .EXAMPLE
@@ -99,7 +99,7 @@ try {
 # ---------------------------------------------------------------------
 # 3. Modulos
 # ---------------------------------------------------------------------
-foreach ($m in 'posh-git', 'PSReadLine', 'Terminal-Icons') {
+foreach ($m in 'posh-git', 'PSReadLine') {
     Write-Step "Modulo: $m"
     if ((Get-Module -ListAvailable -Name $m) -and -not $Force) {
         Write-Ok "ja instalado"
