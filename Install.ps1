@@ -127,10 +127,19 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
         ch   = 'checkout'
         hide = 'update-index --assume-unchanged'
     }
-    foreach ($alias in $gitAliases.GetEnumerator()) {
-        git config --global "alias.$($alias.Key)" $alias.Value
+    # Executa a partir do HOME: se o diretorio atual nao for acessivel
+    # (ex.: shell iniciado em /root via sudo), o git falha ao iniciar.
+    Push-Location -Path ([Environment]::GetFolderPath('UserProfile'))
+    try {
+        foreach ($alias in $gitAliases.GetEnumerator()) {
+            git config --global "alias.$($alias.Key)" $alias.Value
+        }
+        Write-Ok "OK"
+    } catch {
+        Write-Warn2 "falhou: $($_.Exception.Message)"
+    } finally {
+        Pop-Location
     }
-    Write-Ok "OK"
 } else {
     Write-Warn2 "git nao encontrado, aliases nao configurados"
 }
